@@ -110,26 +110,3 @@ const zodChainHandler = <Result>(): ChainableHandler<
     },
   };
 };
-
-const schema = z.object({
-  name: z.string(),
-  username: z.string(),
-  age: z.number(),
-});
-
-zodChainHandler()
-  .isAuthed(() => {
-    const user = { name: "ellen", lastname: "parecida" };
-    return user;
-  })
-  .schema(schema)
-  .input({ name: "ellen", username: "aparecida", age: 29 })
-  .handler((input, ctx) => {
-    console.log(input.name, ctx.lastname);
-  })
-  .onSuccess(() => {
-    console.log("hello from success");
-  })
-  .onError(() => {
-    console.log("error");
-  });
