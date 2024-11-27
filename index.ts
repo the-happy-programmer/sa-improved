@@ -1,32 +1,10 @@
 import { z, ZodSchema, type ZodIssue } from "zod";
+import type {
+  ChainableHandler,
+  ChainableContext,
+} from "./types/zodChainHandler.types";
 
-type ChainableContext<Input, Result, User> = {
-  isAuthed: boolean;
-  schema: ZodSchema<Input> | null;
-  input: Input | null;
-  user: User | null;
-  error: Error | ZodIssue[] | null;
-  result: Result | null;
-};
-
-type ChainableHandler<Input, Result, User> = {
-  isAuthed<User>(callback: () => User): ChainableHandler<Input, Result, User>;
-  schema<Input>(
-    schema: ZodSchema<Input>,
-  ): ChainableHandler<Input, Result, User>;
-  input(data: unknown): ChainableHandler<Input, Result, User>;
-  handler(
-    callback: (input: Input, user: User) => Result,
-  ): ChainableHandler<Input, Result, User>;
-  onError(
-    callback: (error: Error | ZodIssue[]) => void,
-  ): ChainableHandler<Input, Result, User>;
-  onSuccess(
-    callback: (result: Result | null) => void,
-  ): ChainableHandler<Input, Result, User>;
-};
-
-const zodChainHandler = <Result>(): ChainableHandler<
+export const zodChainHandler = <Result>(): ChainableHandler<
   unknown,
   Result,
   unknown
@@ -71,13 +49,11 @@ const zodChainHandler = <Result>(): ChainableHandler<
       if (ctx.error) return this;
       if (!ctx.schema) throw new Error("Schema not defined");
 
-      console.log("VALIUD");
       const ss = ctx.schema.safeParse(data);
       if (!ss.success) {
         ctx.error = ss.error.errors as ZodIssue[];
         return this;
       }
-      console.log("VALIUD", ss);
       ctx.input = ss;
 
       return this;
