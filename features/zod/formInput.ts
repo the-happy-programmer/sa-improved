@@ -7,7 +7,7 @@ interface CheckResult<T> {
   error?: ZodIssue[];
 }
 
-export function input<T extends ZodSchema>(schema: T) {
+export default function formInput<T extends ZodSchema>(schema: T) {
   type SchemaType = z.infer<T>;
   return {
     checker: (formData: FormData): CheckResult<SchemaType> => {
