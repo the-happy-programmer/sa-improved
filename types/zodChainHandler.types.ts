@@ -10,7 +10,7 @@ export type ChainableContext<Input, Result, User> = {
 };
 
 export type ChainableHandler<Input, Result, User> = {
-  isAuthed<User>(callback: () => User): ChainableHandler<Input, Result, User>;
+  procedure<User>(callback: () => User): ChainableHandler<Input, Result, User>;
   schema<Input>(
     schema: ZodSchema<Input>,
   ): ChainableHandler<Input, Result, User>;

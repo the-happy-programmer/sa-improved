@@ -4,11 +4,7 @@ import type {
   ChainableContext,
 } from "../../types/zodChainHandler.types";
 
-const zodChainHandler = <Result>(): ChainableHandler<
-  unknown,
-  Result,
-  unknown
-> => {
+const chainHandler = <Result>(): ChainableHandler<unknown, Result, unknown> => {
   const ctx: ChainableContext<unknown, Result, unknown> = {
     isAuthed: false,
     schema: null,
@@ -19,7 +15,7 @@ const zodChainHandler = <Result>(): ChainableHandler<
   };
 
   return {
-    isAuthed(callback) {
+    procedure(callback) {
       const user = callback();
       try {
         if (!user) throw new Error("User not authenticated");
@@ -87,4 +83,4 @@ const zodChainHandler = <Result>(): ChainableHandler<
   };
 };
 
-export default zodChainHandler;
+export default chainHandler();
