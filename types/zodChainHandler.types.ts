@@ -1,12 +1,12 @@
 import type { ZodSchema, ZodIssue } from "zod";
 
 export type ChainableContext<Input, Result, middlware> = {
-  isAuthed: boolean;
-  schema: ZodSchema<Input> | null;
-  input: Input | null;
-  middlware: middlware | null;
-  error: Error | ZodIssue[] | null;
-  result: Result | null;
+  isAuthed?: boolean;
+  schema?: ZodSchema<Input> | null;
+  input?: Input | null;
+  middlware?: middlware | null;
+  error?: Error | ZodIssue[] | null;
+  result?: Result | null;
 };
 
 export type ChainableHandler<Input, Result, middlware> = {

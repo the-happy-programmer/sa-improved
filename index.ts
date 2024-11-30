@@ -28,16 +28,16 @@ function onSubmit() {
     .schema(
       z.object({
         address: z.string(),
-        houseNumber: z.number(),
+        house: z.number(),
       }),
     )
-    .input({ address: "hell's highway", houseNumber: 666 })
+    .input({ address: "hell's highway", house: 666 })
     .handler(async (input, user) => {
-      const email = (await user).email;
+      const { email, id } = await user;
       console.log(input.address, user);
     })
     .onError((error) => {
-      console.log(error);
+      console.log("Hello");
     })
     .onSuccess(() => {
       console.log("from success");

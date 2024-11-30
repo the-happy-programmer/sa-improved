@@ -32,9 +32,10 @@ const chainHandler = <Result>(): ChainableHandler<unknown, Result, unknown> => {
       >;
     },
 
-    async schema(schema: ZodSchema) {
+    schema(schema: ZodSchema) {
       try {
-        if (ctx.error || !ctx.schema) return this;
+        console.log("context ->", ctx);
+        if (ctx.error) return this;
         ctx.schema = schema;
       } catch (error) {
         ctx.error = error as Error;
