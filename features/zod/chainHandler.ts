@@ -9,27 +9,32 @@ const chainHandler = <Result>(): ChainableHandler<unknown, Result, unknown> => {
     isAuthed: false,
     schema: null,
     input: null,
-    user: null,
+    middlware: null,
     error: null,
     result: null,
   };
 
   return {
-    procedure(callback) {
-      const user = callback();
+    async procedure(callback) {
+      const middlware = await callback();
       try {
-        if (!user) throw new Error("User not authenticated");
-        ctx.user = user;
+        console.log(middlware);
+        if (!middlware) throw new Error("User not authenticated");
+        ctx.middlware = await middlware;
         ctx.isAuthed = true;
       } catch (error) {
         ctx.error = error as Error;
       }
-      return this as ChainableHandler<typeof ctx.input, Result, typeof user>;
+      return this as ChainableHandler<
+        typeof ctx.input,
+        Result,
+        typeof middlware
+      >;
     },
 
-    schema(schema: ZodSchema) {
+    async schema(schema: ZodSchema) {
       try {
-        if (ctx.error) return this;
+        if (ctx.error || !ctx.schema) return this;
         ctx.schema = schema;
       } catch (error) {
         ctx.error = error as Error;
@@ -37,7 +42,7 @@ const chainHandler = <Result>(): ChainableHandler<unknown, Result, unknown> => {
       return this as ChainableHandler<
         z.infer<typeof schema>,
         Result,
-        typeof ctx.user
+        typeof ctx.middlware
       >;
     },
 
@@ -59,7 +64,7 @@ const chainHandler = <Result>(): ChainableHandler<unknown, Result, unknown> => {
       try {
         if (ctx.error) return this;
 
-        const result = callback(ctx.input!, ctx.user!);
+        const result = callback(ctx.input!, ctx.middlware!);
         ctx.result = result;
       } catch (error) {
         ctx.error = error as Error;
