@@ -4,7 +4,7 @@ import type {
   ChainableContext,
 } from "../../types/zodChainHandler.types";
 
-export default class Dolores {
+export class Dolores {
   middlewareError: boolean;
   middlewareExecuted: boolean;
   state: Record<string, unknown>;
@@ -22,31 +22,60 @@ export default class Dolores {
         return result
           .then((data) => {
             this.middlewareExecuted = true;
+            return this;
           })
-          .catch(() => {
+          .catch((error) => {
             this.middlewareError = true;
+            this.state.error = error;
+            return this;
           });
       }
-      this.middlewareError = false;
+
+      this.middlewareExecuted = true;
       return this;
     } catch (error) {
       console.error(error);
+      this.middlewareError = true;
+      this.state.error = error;
       throw error;
     }
   }
 
-  schema(schema: ZodSchema) {}
-
-  input(input: any) {}
-
   handler(callback: any) {
-    if (this.middlewareError) throw new Error("something went wrong");
+    if (!this.middlewareExecuted) {
+      throw new Error("Middleware must be executed first");
+    }
+
+    if (this.middlewareError) {
+      throw this.middlewareError;
+    }
+
+    try {
+      const result = callback();
+      if (result instanceof Promise) {
+        return result.then(() => this);
+      }
+      return this;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  onSuccess(callback) {}
+  schema(schema: ZodSchema) {
+    return this;
+  }
+
+  input(input: any) {
+    return this;
+  }
+
+  onSuccess(callback) {
+    return this;
+  }
 
   onError(callback) {
-    error = callback(this.state.error);
+    this.state.error = callback(this.state.error);
+    return this;
   }
 }
 

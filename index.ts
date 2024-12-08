@@ -1,5 +1,5 @@
 import { getShebang } from "typescript";
-import Dolores from "./features/zod/chainHandler";
+import { Dolores } from "./features/zod/chainHandler";
 
 export async function getUser(): Promise<{ email: string; id: string }> {
   return new Promise((resolve, reject) => {
@@ -13,14 +13,11 @@ export async function getUser(): Promise<{ email: string; id: string }> {
 }
 const test = async () => {
   const dolores = new Dolores();
-
   dolores
     .procedure(async () => {
       const { email, id } = await getUser();
     })
-    .handler(() => {
-      console.log("this is a handler");
-    });
+    .handler(() => {});
 };
 
 test();
