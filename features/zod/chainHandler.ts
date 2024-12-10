@@ -5,33 +5,32 @@ import type {
 } from "../../types/zodChainHandler.types";
 
 export class Dolores {
-  middlewareError: boolean;
-  middlewareExecuted: boolean;
+  private middlewareError: boolean;
+  private procedurePromise: Promise<any> | null = null;
+  private middlewareExecuted: boolean;
   state: Record<string, unknown>;
+
   constructor() {
     this.middlewareError = false;
     this.middlewareExecuted = false;
     this.state = {};
   }
 
-  procedure(callback: any) {
+  procedure(callback: any): this {
     try {
-      const result = callback();
-
-      if (result instanceof Promise) {
-        return result
+      this.procedurePromise = callback();
+      if (this.state.procedure instanceof Promise) {
+        this.state.procedure
           .then((data) => {
-            this.middlewareExecuted = true;
-            return this;
+            this.state.ctx = data;
+            return data;
           })
           .catch((error) => {
-            this.middlewareError = true;
             this.state.error = error;
             return this;
           });
       }
 
-      this.middlewareExecuted = true;
       return this;
     } catch (error) {
       console.error(error);
@@ -41,27 +40,19 @@ export class Dolores {
     }
   }
 
-  handler(callback: any) {
-    if (!this.middlewareExecuted) {
-      throw new Error("Middleware must be executed first");
-    }
-
-    if (this.middlewareError) {
-      throw this.middlewareError;
-    }
-
+  schema(schema: ZodSchema): this {
     try {
-      const result = callback();
-      if (result instanceof Promise) {
-        return result.then(() => this);
+      if (!this.middlewareError) {
+        return this;
       }
+      if (this.state.error) {
+        return this;
+      }
+      this.state.schema = schema;
       return this;
     } catch (error) {
-      throw error;
+      this.state.error = error as Error;
     }
-  }
-
-  schema(schema: ZodSchema) {
     return this;
   }
 
@@ -69,12 +60,31 @@ export class Dolores {
     return this;
   }
 
+  handler(callback: any): this {
+    try {
+      this.procedurePromise!.then((data) => {
+        this.state.ctx = data;
+      }).catch((err) => {
+        this.state.error = err;
+      });
+      if (this.middlewareError) {
+        return this;
+      }
+
+      return this;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   onSuccess(callback) {
     return this;
   }
 
-  onError(callback) {
-    this.state.error = callback(this.state.error);
+  onError(callback: ({ error: any }) => any) {
+    if (this.state.error) {
+      callback({ error: this.state.error });
+    }
     return this;
   }
 }
