@@ -7,12 +7,10 @@ import type {
 export class Dolores {
   private middlewareError: boolean;
   private procedurePromise: Promise<any> | null = null;
-  private middlewareExecuted: boolean;
   state: Record<string, unknown>;
 
   constructor() {
     this.middlewareError = false;
-    this.middlewareExecuted = false;
     this.state = {};
   }
 
@@ -26,6 +24,7 @@ export class Dolores {
             return data;
           })
           .catch((error) => {
+            console.log("this is an error", error);
             this.state.error = error;
             return this;
           });
@@ -42,6 +41,10 @@ export class Dolores {
 
   schema(schema: ZodSchema): this {
     try {
+      this.procedurePromise!.then((data) => {
+        console.log("only after the procedure has ended from schema");
+      });
+      console.log("from schema insider");
       if (!this.middlewareError) {
         return this;
       }
@@ -77,11 +80,15 @@ export class Dolores {
     }
   }
 
-  onSuccess(callback) {
+  onSuccess(callback: any) {
+    if (!this.state.error) {
+      callback();
+      console.log("this is a success from inside");
+    }
     return this;
   }
 
-  onError(callback: ({ error: any }) => any) {
+  onError(callback: ({ error }: { error: any }) => any) {
     if (this.state.error) {
       callback({ error: this.state.error });
     }

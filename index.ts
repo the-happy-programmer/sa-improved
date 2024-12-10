@@ -17,6 +17,7 @@ const test = async () => {
 
   dolores
     .procedure(async () => {
+      console.log("before user");
       const { id } = await getUser();
       console.log("hello");
     })
