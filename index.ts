@@ -28,7 +28,7 @@ const test = async () => {
       console.log("from handler");
     })
     .onError(({ error }) => {
-      console.log("from onError()");
+      console.log(error, "from onError()");
     })
     .onSuccess(() => {
       console.log("hello from onSuccess()");

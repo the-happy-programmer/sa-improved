@@ -16,14 +16,13 @@ export class Dolores {
 
   procedure(callback: any): this {
     this.procedurePromise = callback();
-    if (this.state.procedure instanceof Promise) {
-      this.state.procedure
+    if (this.procedurePromise instanceof Promise) {
+      this.procedurePromise
         .then((data) => {
           this.state.ctx = data;
           return data;
         })
         .catch((error) => {
-          console.log("this is an error", error);
           this.middlewareError = error;
           return this;
         });
@@ -51,7 +50,8 @@ export class Dolores {
 
   handler(callback: any): this {
     this.procedurePromise!.then((data) => {
-      this.state.ctx = data;
+      const clb = callback();
+      clb.catch(() => {});
     }).catch((err) => {
       this.middlewareError = err;
     });
@@ -69,10 +69,8 @@ export class Dolores {
   }
 
   onError(callback: ({ error }: { error: any }) => any) {
-    this.procedurePromise!.catch((data) => {
-      if (this.middlewareError) {
-        callback({ error: this.middlewareError });
-      }
+    this.procedurePromise!.catch((err) => {
+      callback({ error: err });
     });
     return this;
   }
