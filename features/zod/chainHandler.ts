@@ -5,93 +5,75 @@ import type {
 } from "../../types/zodChainHandler.types";
 
 export class Dolores {
-  private middlewareError: boolean;
+  private middlewareError: Error | null;
   private procedurePromise: Promise<any> | null = null;
   state: Record<string, unknown>;
 
   constructor() {
-    this.middlewareError = false;
+    this.middlewareError = null;
     this.state = {};
   }
 
   procedure(callback: any): this {
-    try {
-      this.procedurePromise = callback();
-      if (this.state.procedure instanceof Promise) {
-        this.state.procedure
-          .then((data) => {
-            this.state.ctx = data;
-            return data;
-          })
-          .catch((error) => {
-            console.log("this is an error", error);
-            this.state.error = error;
-            return this;
-          });
-      }
-
-      return this;
-    } catch (error) {
-      console.error(error);
-      this.middlewareError = true;
-      this.state.error = error;
-      throw error;
+    this.procedurePromise = callback();
+    if (this.state.procedure instanceof Promise) {
+      this.state.procedure
+        .then((data) => {
+          this.state.ctx = data;
+          return data;
+        })
+        .catch((error) => {
+          console.log("this is an error", error);
+          this.middlewareError = error;
+          return this;
+        });
     }
+    return this;
   }
 
   schema(schema: ZodSchema): this {
-    try {
-      this.procedurePromise!.then((data) => {
-        console.log("only after the procedure has ended from schema");
-      });
-      console.log("from schema insider");
-      if (!this.middlewareError) {
-        return this;
-      }
-      if (this.state.error) {
-        return this;
-      }
-      this.state.schema = schema;
+    if (this.middlewareError) {
       return this;
-    } catch (error) {
-      this.state.error = error as Error;
     }
+    this.procedurePromise!.then((data) => {
+      console.log("this is from schema");
+      this.state.schema = schema;
+    });
     return this;
   }
 
   input(input: any) {
+    this.procedurePromise!.then(() => {
+      console.log("this is the input", input);
+    });
     return this;
   }
 
   handler(callback: any): this {
-    try {
-      this.procedurePromise!.then((data) => {
-        this.state.ctx = data;
-      }).catch((err) => {
-        this.state.error = err;
-      });
-      if (this.middlewareError) {
-        return this;
-      }
+    this.procedurePromise!.then((data) => {
+      this.state.ctx = data;
+    }).catch((err) => {
+      this.middlewareError = err;
+    });
 
-      return this;
-    } catch (error) {
-      throw error;
-    }
+    return this;
   }
 
   onSuccess(callback: any) {
-    if (!this.state.error) {
-      callback();
-      console.log("this is a success from inside");
-    }
+    this.procedurePromise!.then((data) => {
+      if (!this.middlewareError) {
+        callback();
+      }
+    });
     return this;
   }
 
   onError(callback: ({ error }: { error: any }) => any) {
-    if (this.state.error) {
-      callback({ error: this.state.error });
-    }
+    this.procedurePromise!.catch((data) => {
+      if (this.middlewareError) {
+        callback({ error: this.middlewareError });
+      }
+    });
     return this;
   }
 }

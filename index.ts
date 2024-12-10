@@ -18,8 +18,9 @@ const test = async () => {
   dolores
     .procedure(async () => {
       console.log("before user");
-      const { id } = await getUser();
-      console.log("hello");
+      const user = await getUser();
+      console.log("hello from procedure after user is called");
+      console.log("this is the user", user);
     })
     .schema(z.object({ name: z.string(), lastname: z.string() }))
     .input({ name: "tony", lastname: "hajdini" })
