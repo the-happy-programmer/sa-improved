@@ -4,7 +4,7 @@ import type {
   ChainableContext,
 } from "../../types/zodChainHandler.types";
 
-export class Dolores {
+class ChainHandler {
   private middlewareError: Error | null;
   private procedurePromise: Promise<any> | null = null;
   state: Record<string, unknown>;
@@ -74,6 +74,11 @@ export class Dolores {
     });
     return this;
   }
+}
+
+export function chainHanlder() {
+  const chain = new ChainHandler();
+  return chain;
 }
 
 // const chainHandler = <Result>(): ChainableHandler<unknown, Result, unknown> => {
