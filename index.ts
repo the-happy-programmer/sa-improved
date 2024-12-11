@@ -9,7 +9,7 @@ export async function getData(): Promise<{ id: string; title: string }> {
       true
         ? resolve({ id: "akd-iasd-2323-asds-", title: "this is a title" })
         : reject(time);
-    }, 1000);
+    }, 5000);
   });
 }
 
@@ -18,7 +18,7 @@ export async function getUser(): Promise<{ email: string; id: string }> {
     setTimeout(() => {
       const time = new Date();
       const success = Math.random() > 0.5;
-      false
+      true
         ? resolve({ id: "akd-123a", email: "email@example.com" })
         : reject(time);
     }, 1000);
@@ -30,16 +30,17 @@ const myInput = { name: "tony", lastname: "hajdini" };
 
 chainHanlder()
   .procedure(async () => {
+    console.count("from procedure");
     const user = getUser();
     return user;
   })
   .schema(mySchema)
   .input(myInput)
-  .handler(async ({ input, ctx }) => {
-    const tm = new Date();
-    console.log("from hanlder", ctx, tm);
-    const user = await getData();
-    return user;
+  .handler((args) => {
+    console.count("from hanlder");
+    console.log(args?.ctx);
+
+    return { id: "dolres", name: "tony" };
   })
   .onSuccess(({ ctx, input }) => {
     console.log("from success", ctx);

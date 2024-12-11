@@ -8,7 +8,7 @@ class ChainHandler {
   private middlewareError: Error | null;
   private hanlderError: Error | null;
   private procedurePromise: Promise<any> | null = null;
-  private hanlderPromise: Promise<any> | null = null;
+  private handlerPromise: () => any | null = null;
   state: any;
 
   constructor() {
@@ -45,37 +45,50 @@ class ChainHandler {
     return this;
   }
 
-  handler(callback: ({ input, ctx }: { input?: any; ctx?: any }) => any): this {
-    this.hanlderPromise = new Promise((resolve, reject) => {
-      this.procedurePromise!.then(() => {
-        const result = callback({
-          ctx: this.state.ctx,
-          input: this.state.input,
-        })
-          .then((data) => {
-            resolve(data);
-          })
-          .catch((err) => {
-            reject(err);
-          });
-      }).catch((err) => {
-        this.hanlderError = err;
-        reject(err);
+  handler(callback: (args?: { input?: any; ctx?: any }) => any): this {
+    this.handlerPromise = () =>
+      callback({
+        ctx: this.state.ctx,
+        input: this.state.input,
       });
-    });
+
+    if (!(this.handlerPromise instanceof Promise)) {
+      this.procedurePromise!.then((data) => {
+        console.log(this.handlerPromise instanceof Promise);
+        const result = (this.handlerPromise as Function)();
+      });
+      return this;
+    }
+    // this.handlerPromise = new Promise((resolve, reject) => {
+    //   this.procedurePromise!.then(() => {
+    //     callback({
+    //       ctx: this.state.ctx,
+    //       input: this.state.input,
+    //     })
+    //       .then((data: any) => {
+    //         resolve(data);
+    //       })
+    //       .catch((err: Error) => {
+    //         reject(err);
+    //       });
+    //   }).catch((err) => {
+    //     this.hanlderError = err;
+    //     reject(err);
+    //   });
+    // });
 
     return this;
   }
 
   onSuccess(callback: ({ ctx, input }: { ctx: any; input: any }) => any) {
-    Promise.all([this.procedurePromise, this.hanlderPromise]).then((data) => {
+    Promise.all([this.procedurePromise, this.handlerPromise]).then((data) => {
       callback({ ctx: this.state.ctx, input: this.state.input });
     });
     return this;
   }
 
   onError(callback: ({ error }: { error: any }) => any) {
-    Promise.all([this.procedurePromise, this.hanlderPromise]).catch((err) => {
+    Promise.all([this.procedurePromise, this.handlerPromise]).catch((err) => {
       console.log(err);
       callback({ error: err });
     });
