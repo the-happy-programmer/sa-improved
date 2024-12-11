@@ -4,10 +4,11 @@ import type {
   ChainableContext,
 } from "../../types/zodChainHandler.types";
 
-class ChainHandler implements ChainableHandler<unknown, unknown, unknown> {
+class ChainHandler {
   private middlewareError: Error | null;
   private procedurePromise: Promise<any> | null = null;
-  state: ChainableContext<unknown, unknown, unknown>;
+  private hanlderPromise: Promise<any> | null = null;
+  state: any;
 
   constructor() {
     this.middlewareError = null;
@@ -27,7 +28,7 @@ class ChainHandler implements ChainableHandler<unknown, unknown, unknown> {
           return this;
         });
     }
-    return this as ChainableContext<unknown, unknown, typeof this.state.ctx>;
+    return this;
   }
 
   schema(schema: ZodSchema): this {
@@ -41,19 +42,18 @@ class ChainHandler implements ChainableHandler<unknown, unknown, unknown> {
     return this;
   }
 
-  input(input: any) {
+  input(data: unknown) {
     this.procedurePromise!.then(() => {
-      this.state.input = input;
+      this.state.input = data;
       const safe = this.state.schema?.safeParse(this.state.input);
-      console.log("this is the input", this.state.schema);
     });
     return this;
   }
 
   handler(callback: any): this {
+    this.hanlderPromise = callback();
     this.procedurePromise!.then((data) => {
-      const clb = callback();
-      clb.catch(() => {});
+      this.hanlderPromise;
     }).catch((err) => {
       this.middlewareError = err;
     });
@@ -61,10 +61,11 @@ class ChainHandler implements ChainableHandler<unknown, unknown, unknown> {
     return this;
   }
 
-  onSuccess(callback: any) {
-    this.procedurePromise!.then((data) => {
+  onSuccess(callback: ({ ctx, input }: { ctx: any; input: any }) => any) {
+    Promise.all([this.procedurePromise, this.hanlderPromise]).then((data) => {
       if (!this.middlewareError) {
-        callback();
+        console.log("from success inside", data);
+        callback({ ctx: this.state.ctx, input: this.state.input });
       }
     });
     return this;

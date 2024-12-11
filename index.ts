@@ -12,18 +12,19 @@ export async function getUser(): Promise<{ email: string; id: string }> {
     }, 1000);
   });
 }
+
 const mySchema = z.object({ name: z.string(), lastname: z.string() });
 const myInput = { name: "tony", lastname: "hajdini" };
-chainHanlder()
-  .procedure(getUser)
+const chain = chainHanlder()
+  .procedure(async () => {
+    const user = getUser();
+    return user;
+  })
   .schema(mySchema)
-  .input()
-  .handler(() => {
-    console.log("from handler");
+  .input(myInput)
+  .handler(async () => {
+    const user = await getUser();
+    return user;
   })
-  .onError(({ error }) => {
-    console.log(error, "from onError()");
-  })
-  .onSuccess(() => {
-    console.log("hello from onSuccess()");
-  });
+  .onError(({ error }) => {})
+  .onSuccess(({ ctx, input }) => {});
