@@ -7,8 +7,9 @@ import type {
 class ChainHandler {
   private middlewareError: Error | null;
   private hanlderError: Error | null;
+  private zodError: ZodIssue[] | null;
   private procedurePromise: Promise<any> | null = null;
-  private handlerPromise: () => any | null = null;
+  private handlerPromise: Promise<any> | null = null;
   state: any;
 
   constructor() {
@@ -16,14 +17,18 @@ class ChainHandler {
     this.state = {};
   }
 
-  procedure(callback: any): this {
+  procedure(callback: () => any | Promise<any>): this {
     this.procedurePromise = callback();
-    if (this.procedurePromise instanceof Promise) {
-      this.procedurePromise.then((data) => {
+
+    if (callback.constructor.name === "AsyncFuncion") {
+      console.log("procedure it is a promise");
+      this.procedurePromise!.then((data) => {
         this.state.ctx = data;
         return data;
       });
+      return this;
     }
+    this.procedurePromise;
     return this;
   }
 
@@ -41,41 +46,40 @@ class ChainHandler {
     this.procedurePromise!.then(() => {
       this.state.input = data;
       const safe = this.state.schema?.safeParse(this.state.input);
+      if (!safe.success) {
+        this.zodError = safe.error;
+        return this;
+      }
     });
     return this;
   }
 
-  handler(callback: (args?: { input?: any; ctx?: any }) => any): this {
-    this.handlerPromise = () =>
-      callback({
-        ctx: this.state.ctx,
-        input: this.state.input,
-      });
-
-    if (!(this.handlerPromise instanceof Promise)) {
+  handler(callback: ({ input, ctx }: { input?: any; ctx?: any }) => any): this {
+    if (this.zodError) return this;
+    if (!(callback instanceof Promise)) {
       this.procedurePromise!.then((data) => {
-        console.log(this.handlerPromise instanceof Promise);
-        const result = (this.handlerPromise as Function)();
+        callback({ input: this.state.input, ctx: this.state.ctx });
       });
       return this;
     }
-    // this.handlerPromise = new Promise((resolve, reject) => {
-    //   this.procedurePromise!.then(() => {
-    //     callback({
-    //       ctx: this.state.ctx,
-    //       input: this.state.input,
-    //     })
-    //       .then((data: any) => {
-    //         resolve(data);
-    //       })
-    //       .catch((err: Error) => {
-    //         reject(err);
-    //       });
-    //   }).catch((err) => {
-    //     this.hanlderError = err;
-    //     reject(err);
-    //   });
-    // });
+
+    this.handlerPromise = new Promise((resolve, reject) => {
+      this.procedurePromise!.then(() => {
+        callback({
+          ctx: this.state.ctx,
+          input: this.state.input,
+        })
+          .then((data: any) => {
+            resolve(data);
+          })
+          .catch((err: Error) => {
+            reject(err);
+          });
+      }).catch((err) => {
+        this.hanlderError = err;
+        reject(err);
+      });
+    });
 
     return this;
   }
@@ -88,8 +92,8 @@ class ChainHandler {
   }
 
   onError(callback: ({ error }: { error: any }) => any) {
+    if (this.zodError) return callback({ error: this.zodError });
     Promise.all([this.procedurePromise, this.handlerPromise]).catch((err) => {
-      console.log(err);
       callback({ error: err });
     });
     return this;

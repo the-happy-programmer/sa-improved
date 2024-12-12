@@ -29,18 +29,17 @@ const mySchema = z.object({ name: z.string(), lastname: z.string() });
 const myInput = { name: "tony", lastname: "hajdini" };
 
 chainHanlder()
-  .procedure(async () => {
+  .procedure(() => {
     console.count("from procedure");
-    const user = getUser();
-    return user;
+    return { name: "Tony", lastname: "hajdini" };
   })
   .schema(mySchema)
   .input(myInput)
-  .handler((args) => {
+  .handler(async (args) => {
     console.count("from hanlder");
     console.log(args?.ctx);
-
-    return { id: "dolres", name: "tony" };
+    const data = await getData();
+    return data;
   })
   .onSuccess(({ ctx, input }) => {
     console.log("from success", ctx);
