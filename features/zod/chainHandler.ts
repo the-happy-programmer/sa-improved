@@ -15,6 +15,8 @@ class ChainHandler {
   constructor() {
     this.middlewareError = null;
     this.state = {};
+    this.hanlderError = null;
+    this.zodError = null;
   }
 
   procedure(callback: () => any | Promise<any>): this {
@@ -86,7 +88,9 @@ class ChainHandler {
 
   onSuccess(callback: ({ ctx, input }: { ctx: any; input: any }) => any) {
     Promise.all([this.procedurePromise, this.handlerPromise]).then((data) => {
-      callback({ ctx: this.state.ctx, input: this.state.input });
+      if (this.zodError) {
+        callback({ ctx: this.state.ctx, input: this.state.input });
+      }
     });
     return this;
   }
