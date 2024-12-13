@@ -1,38 +1,49 @@
-import { getShebang } from "typescript";
 import { z } from "zod";
-import { Dolores } from "./features/zod/chainHandler";
+import { chainHanlder } from "./features/zod/chainHandler";
+
+export async function getData(): Promise<{ id: string; title: string }> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const time = new Date();
+      const success = Math.random() > 0.5;
+      true
+        ? resolve({ id: "akd-iasd-2323-asds-", title: "this is a title" })
+        : reject(time);
+    }, 5000);
+  });
+}
 
 export async function getUser(): Promise<{ email: string; id: string }> {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      const success = Math.random() > 0.5; // Random success/failure
-      success
+      const time = new Date();
+      const success = Math.random() > 0.5;
+      true
         ? resolve({ id: "akd-123a", email: "email@example.com" })
-        : reject("Authentication failed");
-    }, 2000);
+        : reject(time);
+    }, 1000);
   });
 }
-const test = async () => {
-  const dolores = new Dolores();
 
-  dolores
-    .procedure(async () => {
-      console.log("before user");
-      const user = await getUser();
-      console.log("hello from procedure after user is called");
-      console.log("this is the user", user);
-    })
-    .schema(z.object({ name: z.string(), lastname: z.string() }))
-    .input({ name: "tony", lastname: "hajdini" })
-    .handler(() => {
-      console.log("from handler");
-    })
-    .onError(({ error }) => {
-      console.log(error, "from onError()");
-    })
-    .onSuccess(() => {
-      console.log("hello from onSuccess()");
-    });
-};
+const mySchema = z.object({ name: z.string(), lastname: z.string() });
+const myInput = { name: "tony", lastname: "hajdini" };
 
-test();
+chainHanlder()
+  .procedure(() => {
+    console.count("from procedure");
+    return { name: "Tony", lastname: "hajdini" };
+  })
+  .schema(mySchema)
+  .input(myInput)
+  .handler(async (args) => {
+    console.count("from hanlder");
+    console.log(args?.ctx);
+    const data = await getData();
+    return data;
+  })
+  .onSuccess(({ ctx, input }) => {
+    console.log("from success", ctx);
+  })
+  .onError(({ error }) => {
+    console.log(error, "from error");
+  });

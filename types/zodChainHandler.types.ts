@@ -1,29 +1,28 @@
 import type { ZodSchema, ZodIssue } from "zod";
 
-export type ChainableContext<Input, Result, middleware> = {
+export interface ChainableContext<Input, Result, Ctx> {
   isAuthed?: boolean;
   schema?: ZodSchema<Input> | null;
   input?: Input | null;
-  middleware?: middleware | null;
+  ctx?: Ctx | null;
   error?: Error | ZodIssue[] | null;
   result?: Result | null;
-};
+}
 
-export type ChainableHandler<Input, Result, Middleware> = {
-  procedure<Middleware>(
-    callback: () => Middleware,
-  ): Promise<ChainableHandler<Input, Result, Middleware>>;
-  schema<Input>(
-    schema: ZodSchema<Input>,
-  ): ChainableHandler<Input, Result, Middleware>;
-  input(data: unknown): ChainableHandler<Input, Result, Middleware>;
+export interface ChainableHandler<Input, Result, Ctx> {
+  state: ChainableContext<Input, Result, Ctx>;
+  procedure<Ctx>(
+    callback: () => Ctx,
+  ): Promise<ChainableHandler<Input, Result, Ctx>>;
+  schema<Input>(schema: ZodSchema<Input>): ChainableHandler<Input, Result, Ctx>;
+  input(data: unknown): ChainableHandler<Input, Result, Ctx>;
   handler(
-    callback: (input: Input, user: Middleware) => Result,
-  ): ChainableHandler<Input, Result, Middleware>;
+    callback: (input: Input, user: Ctx) => Result,
+  ): ChainableHandler<Input, Result, Ctx>;
   onError(
     callback: (error: Error | ZodIssue[]) => void,
-  ): ChainableHandler<Input, Result, Middleware>;
+  ): ChainableHandler<Input, Result, Ctx>;
   onSuccess(
     callback: (result: Result | null) => void,
-  ): ChainableHandler<Input, Result, Middleware>;
-};
+  ): ChainableHandler<Input, Result, Ctx>;
+}

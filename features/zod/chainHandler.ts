@@ -4,29 +4,33 @@ import type {
   ChainableContext,
 } from "../../types/zodChainHandler.types";
 
-export class Dolores {
+class ChainHandler {
   private middlewareError: Error | null;
+  private hanlderError: Error | null;
+  private zodError: ZodIssue[] | null;
   private procedurePromise: Promise<any> | null = null;
-  state: Record<string, unknown>;
+  private handlerPromise: Promise<any> | null = null;
+  state: any;
 
   constructor() {
     this.middlewareError = null;
     this.state = {};
+    this.hanlderError = null;
+    this.zodError = null;
   }
 
-  procedure(callback: any): this {
+  procedure(callback: () => any | Promise<any>): this {
     this.procedurePromise = callback();
-    if (this.procedurePromise instanceof Promise) {
-      this.procedurePromise
-        .then((data) => {
-          this.state.ctx = data;
-          return data;
-        })
-        .catch((error) => {
-          this.middlewareError = error;
-          return this;
-        });
+
+    if (callback.constructor.name === "AsyncFuncion") {
+      console.log("procedure it is a promise");
+      this.procedurePromise!.then((data) => {
+        this.state.ctx = data;
+        return data;
+      });
+      return this;
     }
+    this.procedurePromise;
     return this;
   }
 
@@ -35,45 +39,74 @@ export class Dolores {
       return this;
     }
     this.procedurePromise!.then((data) => {
-      console.log("this is from schema");
       this.state.schema = schema;
     });
     return this;
   }
 
-  input(input: any) {
+  input(data: unknown) {
     this.procedurePromise!.then(() => {
-      console.log("this is the input", input);
+      this.state.input = data;
+      const safe = this.state.schema?.safeParse(this.state.input);
+      if (!safe.success) {
+        this.zodError = safe.error;
+        return this;
+      }
     });
     return this;
   }
 
-  handler(callback: any): this {
-    this.procedurePromise!.then((data) => {
-      const clb = callback();
-      clb.catch(() => {});
-    }).catch((err) => {
-      this.middlewareError = err;
+  handler(callback: ({ input, ctx }: { input?: any; ctx?: any }) => any): this {
+    if (this.zodError) return this;
+    if (!(callback instanceof Promise)) {
+      this.procedurePromise!.then((data) => {
+        callback({ input: this.state.input, ctx: this.state.ctx });
+      });
+      return this;
+    }
+
+    this.handlerPromise = new Promise((resolve, reject) => {
+      this.procedurePromise!.then(() => {
+        callback({
+          ctx: this.state.ctx,
+          input: this.state.input,
+        })
+          .then((data: any) => {
+            resolve(data);
+          })
+          .catch((err: Error) => {
+            reject(err);
+          });
+      }).catch((err) => {
+        this.hanlderError = err;
+        reject(err);
+      });
     });
 
     return this;
   }
 
-  onSuccess(callback: any) {
-    this.procedurePromise!.then((data) => {
-      if (!this.middlewareError) {
-        callback();
+  onSuccess(callback: ({ ctx, input }: { ctx: any; input: any }) => any) {
+    Promise.all([this.procedurePromise, this.handlerPromise]).then((data) => {
+      if (this.zodError) {
+        callback({ ctx: this.state.ctx, input: this.state.input });
       }
     });
     return this;
   }
 
   onError(callback: ({ error }: { error: any }) => any) {
-    this.procedurePromise!.catch((err) => {
+    if (this.zodError) return callback({ error: this.zodError });
+    Promise.all([this.procedurePromise, this.handlerPromise]).catch((err) => {
       callback({ error: err });
     });
     return this;
   }
+}
+
+export function chainHanlder() {
+  const chain = new ChainHandler();
+  return chain;
 }
 
 // const chainHandler = <Result>(): ChainableHandler<unknown, Result, unknown> => {
