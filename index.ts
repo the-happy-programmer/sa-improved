@@ -45,5 +45,5 @@ chainHanlder()
     console.log("from success", ctx);
   })
   .onError(({ error }) => {
-    console.log(error, "from error");
+    console.log("from Error: ", error);
   });
