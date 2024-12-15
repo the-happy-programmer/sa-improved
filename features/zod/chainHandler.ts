@@ -24,15 +24,12 @@ class ChainHandler {
   procedure(callback: () => any | Promise<any>): this {
     this.procedureAsync = callback.constructor.name === "AsyncFunction";
     this.procedurePromise = callback();
-
     if (this.procedureAsync) {
       this.procedurePromise!.then((data) => {
         this.state.ctx = data;
-        return data;
       });
       return this;
     }
-    this.procedurePromise;
     return this;
   }
 
@@ -50,6 +47,7 @@ class ChainHandler {
       this.procedurePromise!.then(() => {
         const safe = this.state.schema?.safeParse(this.state.input);
         if (!safe.success) {
+          console.log("this this");
           this.zodError = safe.error.errors;
         }
       });
@@ -57,6 +55,7 @@ class ChainHandler {
       const safe = this.state.schema?.safeParse(this.state.input);
       if (!safe.success) {
         this.zodError = safe.error.errors;
+        console.log(this.zodError);
       }
     }
     return this;
@@ -64,8 +63,14 @@ class ChainHandler {
 
   handler(callback: ({ input, ctx }: { input?: any; ctx?: any }) => any): this {
     this.hanlderAsync = callback.constructor.name === "AsyncFunction";
+
     if (this.zodError) return this;
-    if (this.hanlderAsync) {
+    if (!this.hanlderAsync && !this.procedurePromise) {
+      callback({ input: this.state.input, ctx: this.state.ctx });
+      return this;
+    }
+
+    if (this.procedureAsync) {
       this.procedurePromise!.then((data) => {
         callback({ input: this.state.input, ctx: this.state.ctx });
       });
@@ -96,7 +101,7 @@ class ChainHandler {
   onSuccess(callback: ({ ctx, input }: { ctx: any; input: any }) => any) {
     if (this.zodError) return this;
     Promise.all([this.procedurePromise, this.handlerPromise]).then((data) => {
-      if (this.zodError) {
+      if (!this.zodError) {
         callback({ ctx: this.state.ctx, input: this.state.input });
       }
     });
@@ -104,10 +109,20 @@ class ChainHandler {
   }
 
   onError(callback: ({ error }: { error: any }) => any) {
-    if (this.zodError) return callback({ error: this.zodError });
-    Promise.all([this.procedurePromise, this.handlerPromise]).catch((err) => {
-      callback({ error: err });
-    });
+    if (this.zodError) {
+      callback({ error: this.zodError });
+      return this;
+    }
+
+    Promise.all([this.procedurePromise, this.handlerPromise])
+      .then(() => {
+        if (this.zodError) {
+          callback({ error: this.zodError });
+        }
+      })
+      .catch((err) => {
+        callback({ error: err });
+      });
     return this;
   }
 }
