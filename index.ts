@@ -26,10 +26,10 @@ export async function getUser(): Promise<{ email: string; id: string }> {
 }
 
 const mySchema = z.object({ name: z.string(), lastname: z.string() });
-const myInput = { name: 2, lastname: "hajdini" };
+const myInput = { name: "hello", lastname: "hajdini" };
 
 chainHanlder()
-  .procedure(async () => {
+  .procedure(() => {
     return { name: "Tony", lastname: 2 };
   })
   .schema(mySchema)
@@ -38,7 +38,7 @@ chainHanlder()
     return { dolores: "this", something: 2 };
   })
   .onSuccess(({ ctx, input }) => {
-    console.log(ctx, input);
+    console.log(ctx, input, "hello");
   })
   .onError(({ error }) => {
     console.log(error);

@@ -6,7 +6,7 @@ import type {
 
 class ChainHandler {
   private middlewareError: Error | null;
-  private hanlderError: Error | null;
+  private handlerError: Error | null;
   private zodError: ZodIssue[] | null;
   private procedurePromise: Promise<any> | null = null;
   private handlerPromise: Promise<any> | null = null;
@@ -17,7 +17,7 @@ class ChainHandler {
   constructor() {
     this.middlewareError = null;
     this.state = {};
-    this.hanlderError = null;
+    this.handlerError = null;
     this.zodError = null;
   }
 
@@ -66,7 +66,7 @@ class ChainHandler {
 
     if (this.zodError) return this;
     if (!this.hanlderAsync && !this.procedurePromise) {
-      callback({ input: this.state.input, ctx: this.state.ctx });
+      callback({ ctx: this.state.ctx, input: this.state.input });
       return this;
     }
 
@@ -78,21 +78,32 @@ class ChainHandler {
     }
 
     this.handlerPromise = new Promise((resolve, reject) => {
-      this.procedurePromise!.then(() => {
-        callback({
-          ctx: this.state.ctx,
-          input: this.state.input,
-        })
+      if (!this.procedureAsync) {
+        callback({ ctx: this.state.ctx, input: this.state.input })
           .then((data: any) => {
             resolve(data);
           })
           .catch((err: Error) => {
+            this.handlerError = err;
             reject(err);
           });
-      }).catch((err) => {
-        this.hanlderError = err;
-        reject(err);
-      });
+      } else {
+        this.procedurePromise!.then(() => {
+          callback({
+            ctx: this.state.ctx,
+            input: this.state.input,
+          })
+            .then((data: any) => {
+              resolve(data);
+            })
+            .catch((err: Error) => {
+              reject(err);
+            });
+        }).catch((err) => {
+          this.handlerError = err;
+          reject(err);
+        });
+      }
     });
 
     return this;
