@@ -30,6 +30,7 @@ class ChainHandler {
       });
       return this;
     }
+    this.state.ctx = callback();
     return this;
   }
 
@@ -47,7 +48,6 @@ class ChainHandler {
       this.procedurePromise!.then(() => {
         const safe = this.state.schema?.safeParse(this.state.input);
         if (!safe.success) {
-          console.log("this this");
           this.zodError = safe.error.errors;
         }
       });
@@ -55,7 +55,6 @@ class ChainHandler {
       const safe = this.state.schema?.safeParse(this.state.input);
       if (!safe.success) {
         this.zodError = safe.error.errors;
-        console.log(this.zodError);
       }
     }
     return this;
@@ -64,8 +63,9 @@ class ChainHandler {
   handler(callback: ({ input, ctx }: { input?: any; ctx?: any }) => any): this {
     this.hanlderAsync = callback.constructor.name === "AsyncFunction";
 
-    if (this.zodError) return this;
-    if (!this.hanlderAsync && !this.procedurePromise) {
+    if (this.zodError || this.middlewareError) return this;
+
+    if (!this.hanlderAsync && !this.procedureAsync) {
       callback({ ctx: this.state.ctx, input: this.state.input });
       return this;
     }
@@ -77,40 +77,46 @@ class ChainHandler {
       return this;
     }
 
-    this.handlerPromise = new Promise((resolve, reject) => {
-      if (!this.procedureAsync) {
-        callback({ ctx: this.state.ctx, input: this.state.input })
-          .then((data: any) => {
-            resolve(data);
-          })
-          .catch((err: Error) => {
-            this.handlerError = err;
-            reject(err);
-          });
-      } else {
-        this.procedurePromise!.then(() => {
-          callback({
-            ctx: this.state.ctx,
-            input: this.state.input,
-          })
+    if (this.hanlderAsync || this.procedureAsync) {
+      this.handlerPromise = new Promise((resolve, reject) => {
+        if (!this.procedureAsync) {
+          callback({ ctx: this.state.ctx, input: this.state.input })
             .then((data: any) => {
               resolve(data);
             })
             .catch((err: Error) => {
+              this.handlerError = err;
               reject(err);
             });
-        }).catch((err) => {
-          this.handlerError = err;
-          reject(err);
-        });
-      }
-    });
+        } else {
+          this.procedurePromise!.then(() => {
+            callback({
+              ctx: this.state.ctx,
+              input: this.state.input,
+            })
+              .then((data: any) => {
+                resolve(data);
+              })
+              .catch((err: Error) => {
+                reject(err);
+              });
+          }).catch((err) => {
+            this.handlerError = err;
+            reject(err);
+          });
+        }
+      });
+    }
 
     return this;
   }
 
   onSuccess(callback: ({ ctx, input }: { ctx: any; input: any }) => any) {
-    if (this.zodError) return this;
+    if (this.zodError || this.middlewareError) return this;
+    if (!this.hanlderAsync && !this.procedureAsync) {
+      callback({ ctx: this.state.ctx, input: this.state.input });
+      return this;
+    }
     Promise.all([this.procedurePromise, this.handlerPromise]).then((data) => {
       if (!this.zodError) {
         callback({ ctx: this.state.ctx, input: this.state.input });
@@ -120,7 +126,9 @@ class ChainHandler {
   }
 
   onError(callback: ({ error }: { error: any }) => any) {
-    if (this.zodError) {
+    const sync = this.hanlderAsync && this.procedureAsync;
+    const err = this.zodError || this.middlewareError;
+    if (err) {
       callback({ error: this.zodError });
       return this;
     }
