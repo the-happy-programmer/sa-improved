@@ -26,24 +26,22 @@ export async function getUser(): Promise<{ email: string; id: string }> {
 }
 
 const mySchema = z.object({ name: z.string(), lastname: z.string() });
-const myInput = { name: "tony", lastname: "hajdini" };
+const myInput = { name: 2, lastname: 2 };
 
 chainHanlder()
-  .procedure(() => {
-    console.count("from procedure");
-    return { name: "Tony", lastname: "hajdini" };
+  .procedure(async () => {
+    const user = await getUser();
+    return user;
   })
   .schema(mySchema)
   .input(myInput)
-  .handler(async (args) => {
-    console.count("from hanlder");
-    console.log(args?.ctx);
-    const data = await getData();
+  .handler(async ({ input, ctx }) => {
+    const data = getData();
     return data;
   })
   .onSuccess(({ ctx, input }) => {
-    console.log("from success", ctx);
+    console.log(ctx, input, "<- success");
   })
   .onError(({ error }) => {
-    console.log(error, "from error");
+    console.log("from error", error);
   });
