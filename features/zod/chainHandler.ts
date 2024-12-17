@@ -3,7 +3,7 @@ import type {
   ChainableHandler,
   ChainableContext,
 } from "../../types/zodChainHandler.types";
-
+// make them all async
 class ChainHandler {
   private middlewareError: Error | null;
   private handlerError: Error | null;
