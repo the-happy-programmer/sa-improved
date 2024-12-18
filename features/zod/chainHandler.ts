@@ -68,13 +68,15 @@ class ChainHandler {
   }
 
   onError(callback: ({ error }: { error: any }) => any) {
-    this.handlerPromise!.then(() => {
-      if (this.zodError) {
-        callback({ error: this.zodError });
-      }
-    }).catch((err) => {
-      callback({ error: err });
-    });
+    Promise.all([this.procedurePromise, this.handlerPromise])
+      .then(() => {
+        if (this.zodError) {
+          callback({ error: this.zodError });
+        }
+      })
+      .catch((err) => {
+        callback({ error: err });
+      });
     return this;
   }
 }
