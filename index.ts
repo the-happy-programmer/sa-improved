@@ -8,8 +8,8 @@ export async function getData(): Promise<{ id: string; title: string }> {
       const success = Math.random() > 0.5;
       true
         ? resolve({ id: "akd-iasd-2323-asds-", title: "this is a title" })
-        : reject(time);
-    }, 5000);
+        : reject("fetching data was wrong");
+    }, 1000);
   });
 }
 
@@ -20,13 +20,13 @@ export async function getUser(): Promise<{ email: string; id: string }> {
       const success = Math.random() > 0.5;
       true
         ? resolve({ id: "akd-123a", email: "email@example.com" })
-        : reject(time);
+        : reject("user not found");
     }, 1000);
   });
 }
 
 const mySchema = z.object({ name: z.string(), lastname: z.string() });
-const myInput = { name: 2, lastname: 2 };
+const myInput = { name: "Tony", lastname: "hajdini" };
 
 chainHanlder()
   .procedure(async () => {
@@ -35,9 +35,8 @@ chainHanlder()
   })
   .schema(mySchema)
   .input(myInput)
-  .handler(async ({ input, ctx }) => {
-    const data = getData();
-    return data;
+  .handler(({ input, ctx }) => {
+    return { id: "asd", title: "ea" };
   })
   .onSuccess(({ ctx, input }) => {
     console.log(ctx, input, "<- success");
