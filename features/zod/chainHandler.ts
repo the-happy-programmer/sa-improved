@@ -6,7 +6,7 @@ import type {
 
 class ChainHandler {
   private zodError: ZodIssue[] | null;
-  private procedurePromise: Promise<any> | null = null;
+  private procedurePromise: Promise<any>[] = [];
   private handlerPromise: Promise<any> | null = null;
   error: ZodIssue[] | Error | null = null;
   state: any;
@@ -16,17 +16,22 @@ class ChainHandler {
     this.zodError = null;
   }
 
-  procedure(callback: () => any | Promise<any>): this {
-    this.procedurePromise = Promise.resolve()
-      .then(() => callback())
-      .catch((err) => {
-        throw err;
-      });
+  procedure(...callbacks: any[]): this {
+    callbacks.forEach((callback) => {
+      this.procedurePromise!.push(
+        Promise.resolve()
+          .then(() => callback())
+          .catch((err) => {
+            throw err;
+          }),
+      );
+    });
+
     return this;
   }
 
   schema(schema: ZodSchema): this {
-    this.procedurePromise!.then(() => {
+    Promise.all(this.procedurePromise!).then(() => {
       this.state.schema = schema;
     });
     return this;
@@ -34,7 +39,7 @@ class ChainHandler {
 
   input(data: unknown) {
     this.state.input = data;
-    this.procedurePromise!.then(() => {
+    Promise.all(this.procedurePromise!).then(() => {
       const safe = this.state.schema?.safeParse(this.state.input);
       if (!safe.success) {
         this.zodError = safe.error.errors;
@@ -44,7 +49,7 @@ class ChainHandler {
   }
 
   handler(callback: ({ input, ctx }: { input?: any; ctx?: any }) => any): this {
-    this.handlerPromise = this.procedurePromise!.then((data) =>
+    this.handlerPromise = Promise.all(this.procedurePromise!).then((data) =>
       Promise.resolve()
         .then(() => callback({ input: this.state.input, ctx: data }))
         .catch((err) => {
@@ -55,10 +60,10 @@ class ChainHandler {
   }
 
   onSuccess(callback: ({ ctx, input }: { ctx: any; input: any }) => any) {
-    Promise.all([this.procedurePromise, this.handlerPromise])!
+    Promise.all([...this.procedurePromise, this.handlerPromise])!
       .then((data) => {
         if (!this.zodError) {
-          callback({ ctx: data[0], input: this.state.input });
+          callback({ ctx: data, input: this.state.input });
         }
       })
       .catch((err) => {

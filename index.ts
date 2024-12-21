@@ -6,7 +6,7 @@ export async function getData(): Promise<{ id: string; title: string }> {
     setTimeout(() => {
       const time = new Date();
       const success = Math.random() > 0.5;
-      true
+      false
         ? resolve({ id: "akd-iasd-2323-asds-", title: "this is a title" })
         : reject("fetching data was wrong");
     }, 1000);
@@ -25,18 +25,36 @@ export async function getUser(): Promise<{ email: string; id: string }> {
   });
 }
 
+export async function getAuth(): Promise<{ authed: true }> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const time = new Date();
+      const success = Math.random() > 0.5;
+      true ? resolve({ authed: true }) : reject("user is not authed");
+    }, 1000);
+  });
+}
+
 const mySchema = z.object({ name: z.string(), lastname: z.string() });
 const myInput = { name: "Tony", lastname: "hajdini" };
 
+const user = async () => {
+  const user = await getUser();
+  return user;
+};
+
+const authorization = async () => {
+  const data = await getAuth();
+  return data;
+};
+
 chainHanlder()
-  .procedure(async () => {
-    const user = await getUser();
-    return user;
-  })
+  .procedure(user, authorization)
   .schema(mySchema)
   .input(myInput)
-  .handler(({ input, ctx }) => {
-    return { id: "asd", title: "ea" };
+  .handler(async ({ input, ctx }) => {
+    const data = await getData();
+    return data;
   })
   .onSuccess(({ ctx, input }) => {
     console.log(ctx, input, "<- success");
