@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { Schema, z } from "zod";
 import { chainHanlder } from "./features/zod/chainHandler";
 
 export async function getData(): Promise<{ id: string; title: string }> {
@@ -9,7 +9,7 @@ export async function getData(): Promise<{ id: string; title: string }> {
       false
         ? resolve({ id: "akd-iasd-2323-asds-", title: "this is a title" })
         : reject("fetching data was wrong");
-    }, 1000);
+    }, 5000);
   });
 }
 
@@ -21,7 +21,7 @@ export async function getUser(): Promise<{ email: string; id: string }> {
       true
         ? resolve({ id: "akd-123a", email: "email@example.com" })
         : reject("user not found");
-    }, 1000);
+    }, 5000);
   });
 }
 
@@ -53,12 +53,15 @@ chainHanlder()
   .schema(mySchema)
   .input(myInput)
   .handler(async ({ input, ctx }) => {
+    // this will run is procedures have not thrown any errors
     const data = await getData();
     return data;
   })
   .onSuccess(({ ctx, input }) => {
-    console.log(ctx, input, "<- success");
+    // this will run is eveything has run successfully
+    console.log("onSuccess", ctx, input);
   })
   .onError(({ error }) => {
+    // this will run the first errors it occurs when one of the above throws an error
     console.log("from error", error);
   });
